@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neanderthaler Simulation - Pleistozän Ära</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #4a90e2;
+        }
+
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+            color: #4a90e2;
+            border-bottom: 2px solid #4a90e2;
+            padding-bottom: 5px;
+        }
+
+        #gameCanvas {
+            border: 3px solid #4a90e2;
+            box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
+            background: #2d4a3e;
+            cursor: crosshair;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+        }
+
+        .stat-label {
+            color: #aaa;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .slider-container {
+            margin: 10px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .info-box {
+            background: rgba(74, 144, 226, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 12px;
+            border-left: 3px solid #4a90e2;
+        }
+
+        #legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 1px solid #fff;
+            border-radius: 3px;
+        }
+
+        #selectedAgentInfo {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 2px solid #ffd700;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .health-bar-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .generation-badge {
+            display: inline-block;
+            background: #ffd700;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h1>🦴 Neanderthaler Simulation</h1>
+            
+            <div class="info-box">
+                Pleistozän-Ära (vor 40.000 Jahren)<br>
+                Realistische Evolution durch neuronale Netze
+            </div>
+
+            <h2>⚙️ Steuerung</h2>
+            <div class="control-group">
+                <button id="startBtn">▶️ Simulation Starten</button>
+                <button id="pauseBtn">⏸️ Pausieren</button>
+                <button id="resetBtn">🔄 Neustart</button>
+            </div>
+
+            <div class="slider-container">
+                <label>Simulationsgeschwindigkeit: <span id="speedValue">1x</span></label>
+                <input type="range" id="speedSlider" min="1" max="10" value="1">
+            </div>
+
+            <h2>📊 Statistiken</h2>
+            <div id="stats">
+                <div class="stat-line">
+                    <span class="stat-label">Generation:</span>
+                    <span class="stat-value generation-badge" id="generation">1</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Lebende Neanderthaler:</span>
+                    <span class="stat-value" id="aliveAgents">15</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Verstorbene:</span>
+                    <span class="stat-value" id="deadAgents">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Gesamtbevölkerung:</span>
+                    <span class="stat-value" id="totalBorn">15</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Simulationstag:</span>
+                    <span class="stat-value" id="dayCount">1</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Jahreszeit:</span>
+                    <span class="stat-value" id="season">Frühling</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Temperatur:</span>
+                    <span class="stat-value" id="temperature">12°C</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Tiere:</span>
+                    <span class="stat-value" id="animalCount">200</span>
+                </div>
+            </div>
+
+            <h2>🎨 Legende</h2>
+            <div id="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d2691e;"></div>
+                    <span>Neanderthaler</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B4513;"></div>
+                    <span>Mammut</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #A0522D;"></div>
+                    <span>Hirsch/Rentier</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #CD853F;"></div>
+                    <span>Hase</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF4500;"></div>
+                    <span>Höhlenlöwe</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #228B22;"></div>
+                    <span>Wald</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #90EE90;"></div>
+                    <span>Steppe</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4169E1;"></div>
+                    <span>Wasser</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #696969;"></div>
+                    <span>Höhle</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFD700;"></div>
+                    <span>Beeren</span>
+                </div>
+            </div>
+
+            <h2>👤 Ausgewählter Agent</h2>
+            <div id="selectedAgentInfo">
+                Klicke auf einen Neanderthaler für Details...
+            </div>
+        </div>
+
+        <div id="main">
+            <canvas id="gameCanvas" width="1200" height="800"></canvas>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="neuralNetwork.js"></script>
+    <script src="cellularAutomaton.js"></script>
+    <script src="environment.js"></script>
+    <script src="animal.js"></script>
+    <script src="neanderthal.js"></script>
+    <script src="simulation.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
